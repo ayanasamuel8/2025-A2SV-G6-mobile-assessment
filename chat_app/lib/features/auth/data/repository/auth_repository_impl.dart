@@ -47,4 +47,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> logout() async {
     await localDataSource.deleteToken();
   }
+
+  @override
+  Future<bool> isAuthenticated() async {
+    final token = await localDataSource.getToken();
+    return token != null;
+  }
 }

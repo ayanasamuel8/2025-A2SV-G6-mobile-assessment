@@ -12,5 +12,6 @@ abstract class AuthRepository {
     String password,
   );
   // Future<User> getMe(String token);
+  Future<bool> isAuthenticated();
   Future<void> logout();
 }

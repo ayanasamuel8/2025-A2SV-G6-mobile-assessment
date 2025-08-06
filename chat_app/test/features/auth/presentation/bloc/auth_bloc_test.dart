@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:chat_app/core/error/failure.dart';
+import 'package:chat_app/features/auth/domain/usecases/check_authenticated_usecase.dart';
 import 'package:chat_app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:chat_app/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:chat_app/features/auth/domain/usecases/signup_usecase.dart';
@@ -14,20 +15,26 @@ class MockLoginUseCase extends Mock implements LoginUseCase {}
 
 class MockLogoutUseCase extends Mock implements LogoutUseCase {}
 
+class MockCheckAuthenticatedUseCase extends Mock
+    implements CheckAuthenticatedUseCase {}
+
 void main() {
   late AuthBloc authBloc;
   late MockSignupUseCase mockSignupUseCase;
   late MockLoginUseCase mockLoginUseCase;
   late MockLogoutUseCase mockLogoutUseCase;
+  late MockCheckAuthenticatedUseCase mockCheckAuthenticatedUseCase;
 
   setUp(() {
     mockSignupUseCase = MockSignupUseCase();
     mockLoginUseCase = MockLoginUseCase();
     mockLogoutUseCase = MockLogoutUseCase();
+    mockCheckAuthenticatedUseCase = MockCheckAuthenticatedUseCase();
     authBloc = AuthBloc(
       signupUseCase: mockSignupUseCase,
       loginUseCase: mockLoginUseCase,
       logoutUseCase: mockLogoutUseCase,
+      checkAuthenticatedUseCase: mockCheckAuthenticatedUseCase,
     );
   });
 

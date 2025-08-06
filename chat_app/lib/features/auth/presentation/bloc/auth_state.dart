@@ -39,3 +39,17 @@ class AuthError extends AuthState {
   @override
   List<Object> get props => [message];
 }
+
+class AuthenticatedState extends AuthState {
+  const AuthenticatedState();
+
+  @override
+  List<Object> get props => [];
+}
+
+class UnAuthenticatedState extends AuthState {
+  const UnAuthenticatedState();
+
+  @override
+  List<Object> get props => [];
+}
