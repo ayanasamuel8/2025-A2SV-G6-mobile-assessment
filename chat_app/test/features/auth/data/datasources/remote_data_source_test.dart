@@ -12,7 +12,8 @@ class MockHttpClient extends Mock implements http.Client {}
 void main() {
   late RemoteDataSource dataSource;
   late MockHttpClient mockHttpClient;
-  const tBaseUrl = 'https://g5-flutter-learning-path-be.onrender.com/api/v2';
+  const tBaseUrl =
+      'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
 
   setUp(() {
     mockHttpClient = MockHttpClient();

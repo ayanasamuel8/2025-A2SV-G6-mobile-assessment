@@ -6,7 +6,7 @@ import '../../../../core/error/failure.dart';
 
 class RemoteDataSource {
   final String _baseUrl =
-      'https://g5-flutter-learning-path-be.onrender.com/api/v2';
+      'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
   final http.Client client;
 
   RemoteDataSource(this.client);
