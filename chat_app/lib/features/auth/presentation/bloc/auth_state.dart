@@ -32,9 +32,9 @@ class LoggedoutState extends AuthState {
   List<Object> get props => [];
 }
 
-class ErrorState extends AuthState {
+class AuthError extends AuthState {
   final String message;
-  const ErrorState({required this.message});
+  const AuthError({required this.message});
 
   @override
   List<Object> get props => [message];
