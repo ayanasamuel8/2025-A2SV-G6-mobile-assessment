@@ -4,13 +4,24 @@ import 'package:http/http.dart' as http;
 
 import '../../../../core/error/failure.dart';
 
-class RemoteDataSource {
+abstract class RemoteDataSource {
+  Future<Either<Failure, String>> login(String email, String password);
+  Future<Either<Failure, void>> register(
+    String name,
+    String email,
+    String password,
+  );
+  // Future<Either<Failure, Map<String, dynamic>>> getMe(String token);
+}
+
+class RemoteDataSourceImpl implements RemoteDataSource {
   final String _baseUrl =
       'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
   final http.Client client;
 
-  RemoteDataSource(this.client);
+  RemoteDataSourceImpl({required this.client});
 
+  @override
   Future<Either<Failure, String>> login(String email, String password) async {
     final response = await client.post(
       Uri.parse('$_baseUrl/auth/login'),
@@ -25,6 +36,7 @@ class RemoteDataSource {
     }
   }
 
+  @override
   Future<Either<Failure, void>> register(
     String name,
     String email,
@@ -44,6 +56,7 @@ class RemoteDataSource {
   }
 
   /// future integration!
+  // @override
   // Future<Either<Failure, Map<String, dynamic>>> getMe(String token) async {
   //   final response = await client.get(
   //     Uri.parse('$_baseUrl/auth/user'),

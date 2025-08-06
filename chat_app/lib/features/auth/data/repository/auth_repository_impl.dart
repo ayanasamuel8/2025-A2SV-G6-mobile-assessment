@@ -11,11 +11,11 @@ class AuthRepositoryImpl implements AuthRepository {
   final LocalDataSource localDataSource;
   final NetworkInfo networkInfo;
 
-  AuthRepositoryImpl(
-    this.remoteDataSource,
-    this.localDataSource,
-    this.networkInfo,
-  );
+  AuthRepositoryImpl({
+    required this.remoteDataSource,
+    required this.localDataSource,
+    required this.networkInfo,
+  });
 
   @override
   Future<Either<Failure, void>> login(String email, String password) async {

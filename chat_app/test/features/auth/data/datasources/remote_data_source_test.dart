@@ -17,7 +17,7 @@ void main() {
 
   setUp(() {
     mockHttpClient = MockHttpClient();
-    dataSource = RemoteDataSource(mockHttpClient);
+    dataSource = RemoteDataSourceImpl(client: mockHttpClient);
     registerFallbackValue(Uri.parse('$tBaseUrl/auth/login'));
   });
 

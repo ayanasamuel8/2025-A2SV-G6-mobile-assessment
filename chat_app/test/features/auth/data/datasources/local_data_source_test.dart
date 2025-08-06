@@ -11,7 +11,7 @@ void main() {
 
   setUp(() {
     mockStorage = MockFlutterSecureStorage();
-    localDataSource = LocalDataSource(mockStorage);
+    localDataSource = LocalDataSourceImpl(storage: mockStorage);
   });
 
   group('LocalDataSource', () {

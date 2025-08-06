@@ -24,9 +24,9 @@ void main() {
     mockLocalDataSource = MockLocalDataSource();
     mockNetworkInfo = MockNetworkInfo();
     repository = AuthRepositoryImpl(
-      mockRemoteDataSource,
-      mockLocalDataSource,
-      mockNetworkInfo,
+      remoteDataSource: mockRemoteDataSource,
+      localDataSource: mockLocalDataSource,
+      networkInfo: mockNetworkInfo,
     );
   });
 
