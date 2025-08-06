@@ -19,7 +19,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.logoutUseCase,
   }) : super(AuthInitial()) {
     on<LoginEvent>((event, emit) async {
-      emit(LoadingState());
+      emit(AuthLoading());
       final result = await loginUseCase.call(event.email, event.password);
       result.fold(
         (failure) => emit(ErrorState(message: failure.message)),
@@ -27,7 +27,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
     });
     on<SignupEvent>((event, emit) async {
-      emit(LoadingState());
+      emit(AuthLoading());
       final result = await signupUseCase.call(
         event.name,
         event.email,
@@ -39,7 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
     });
     on<LogoutEvent>((event, emit) async {
-      emit(LoadingState());
+      emit(AuthLoading());
       try {
         await logoutUseCase.call();
         emit(const LoggedoutState());
