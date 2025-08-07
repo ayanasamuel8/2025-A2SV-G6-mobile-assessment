@@ -28,9 +28,7 @@ Future<void> init() async {
       checkInterval: const Duration(seconds: 5), // Interval between checks
     );
   });
-  sl.registerLazySingleton(
-    () => const FlutterSecureStorage(),
-  ); // <-- 2. REGISTER THE STORAGE
+  sl.registerLazySingleton(() => const FlutterSecureStorage());
 
   // ===================================================================
   // CORE (Classes that provide cross-feature functionality)
@@ -48,9 +46,7 @@ Future<void> init() async {
     () => RemoteDataSourceImpl(client: sl()),
   );
   sl.registerLazySingleton<LocalDataSource>(
-    () => LocalDataSourceImpl(
-      storage: sl(),
-    ), // Now this 'sl()' call will find FlutterSecureStorage
+    () => LocalDataSourceImpl(storage: sl()),
   );
 
   // Repository
