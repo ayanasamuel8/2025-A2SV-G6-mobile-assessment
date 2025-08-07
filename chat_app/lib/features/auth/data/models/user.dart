@@ -1,4 +1,4 @@
-import '../../domain/entities/user.dart';
+import 'package:chat_app/features/auth/domain/entities/user.dart';
 
 class UserModel extends User {
   const UserModel({
@@ -13,5 +13,9 @@ class UserModel extends User {
 
   Map<String, dynamic> toJson() {
     return {'id': id, 'name': name, 'email': email};
+  }
+
+  User toEntity() {
+    return User(id: id, name: name, email: email);
   }
 }
