@@ -79,7 +79,7 @@ class _AuthFormState extends State<AuthForm> {
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Padding(
-                  padding: const EdgeInsets.all(50.0),
+                  padding: const EdgeInsets.all(10.0),
                   child: Center(
                     child: Form(
                       key: _formKey,

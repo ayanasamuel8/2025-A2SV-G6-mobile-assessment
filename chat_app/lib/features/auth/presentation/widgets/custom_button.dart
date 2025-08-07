@@ -23,8 +23,8 @@ class CustomButton extends StatelessWidget {
         backgroundColor: primary(),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: EdgeInsets.symmetric(
-          vertical: 20,
-          horizontal: MediaQuery.of(context).size.width * 0.30,
+          vertical: 15,
+          horizontal: MediaQuery.of(context).size.width * 0.35,
         ),
       ),
       child: isLoading

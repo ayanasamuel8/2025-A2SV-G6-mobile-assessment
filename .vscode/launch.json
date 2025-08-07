@@ -17,7 +17,7 @@
             "cwd": "chat_app",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "deviceId": "083851525A006597",
         },
         {
             "name": "chat_app (release mode)",
