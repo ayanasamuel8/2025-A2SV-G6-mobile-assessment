@@ -1,8 +1,7 @@
-// import '../entities/user.dart';
-
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failure.dart';
+import '../entities/user.dart';
 
 abstract class AuthRepository {
   Future<Either<Failure, void>> login(String email, String password);
@@ -11,6 +10,7 @@ abstract class AuthRepository {
     String email,
     String password,
   );
-  // Future<User> getMe(String token);
+  Future<Either<Failure, User>> getMe();
+  Future<bool> isAuthenticated();
   Future<void> logout();
 }

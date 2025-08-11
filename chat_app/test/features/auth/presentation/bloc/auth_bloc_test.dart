@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:chat_app/core/error/failure.dart';
+import 'package:chat_app/features/auth/domain/usecases/check_authenticated_usecase.dart';
 import 'package:chat_app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:chat_app/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:chat_app/features/auth/domain/usecases/signup_usecase.dart';
@@ -14,20 +15,26 @@ class MockLoginUseCase extends Mock implements LoginUseCase {}
 
 class MockLogoutUseCase extends Mock implements LogoutUseCase {}
 
+class MockCheckAuthenticatedUseCase extends Mock
+    implements CheckAuthenticatedUseCase {}
+
 void main() {
   late AuthBloc authBloc;
   late MockSignupUseCase mockSignupUseCase;
   late MockLoginUseCase mockLoginUseCase;
   late MockLogoutUseCase mockLogoutUseCase;
+  late MockCheckAuthenticatedUseCase mockCheckAuthenticatedUseCase;
 
   setUp(() {
     mockSignupUseCase = MockSignupUseCase();
     mockLoginUseCase = MockLoginUseCase();
     mockLogoutUseCase = MockLogoutUseCase();
+    mockCheckAuthenticatedUseCase = MockCheckAuthenticatedUseCase();
     authBloc = AuthBloc(
       signupUseCase: mockSignupUseCase,
       loginUseCase: mockLoginUseCase,
       logoutUseCase: mockLogoutUseCase,
+      checkAuthenticatedUseCase: mockCheckAuthenticatedUseCase,
     );
   });
 
@@ -46,7 +53,7 @@ void main() {
 
   group('LoginEvent', () {
     blocTest<AuthBloc, AuthState>(
-      'emits [AuthLoading, LoggedinState] when login is successful',
+      'emits [LoginLoadingState, LoggedinState] when login is successful',
       build: () {
         when(
           () => mockLoginUseCase.call(any(), any()),
@@ -55,14 +62,14 @@ void main() {
       },
       act: (bloc) =>
           bloc.add(const LoginEvent(email: tEmail, password: tPassword)),
-      expect: () => [AuthLoading(), const LoggedinState()],
+      expect: () => [const LoginLoadingState(), const LoggedinState()],
       verify: (_) {
         verify(() => mockLoginUseCase.call(tEmail, tPassword)).called(1);
       },
     );
 
     blocTest<AuthBloc, AuthState>(
-      'emits [AuthLoading, AuthError] when login fails',
+      'emits [LoginLoadingState, LoginFailedState] when login fails',
       build: () {
         when(
           () => mockLoginUseCase.call(any(), any()),
@@ -71,7 +78,10 @@ void main() {
       },
       act: (bloc) =>
           bloc.add(const LoginEvent(email: tEmail, password: tPassword)),
-      expect: () => [AuthLoading(), AuthError(message: tServerFailure.message)],
+      expect: () => [
+        const LoginLoadingState(),
+        LoginFailedState(tServerFailure.message),
+      ],
       verify: (_) {
         verify(() => mockLoginUseCase.call(tEmail, tPassword)).called(1);
       },
@@ -80,7 +90,7 @@ void main() {
 
   group('SignupEvent', () {
     blocTest<AuthBloc, AuthState>(
-      'emits [AuthLoading, SignedupState] when signup is successful',
+      'emits [SignupLoadingState, SignedupState] when signup is successful',
       build: () {
         when(
           () => mockSignupUseCase.call(any(), any(), any()),
@@ -90,7 +100,7 @@ void main() {
       act: (bloc) => bloc.add(
         const SignupEvent(name: tName, email: tEmail, password: tPassword),
       ),
-      expect: () => [AuthLoading(), const SignedupState()],
+      expect: () => [const SignupLoadingState(), const SignedupState()],
       verify: (_) {
         verify(
           () => mockSignupUseCase.call(tName, tEmail, tPassword),
@@ -99,7 +109,7 @@ void main() {
     );
 
     blocTest<AuthBloc, AuthState>(
-      'emits [AuthLoading, AuthError] when signup fails',
+      'emits [SignupLoadingState, SignupFailedState] when signup fails',
       build: () {
         when(
           () => mockSignupUseCase.call(any(), any(), any()),
@@ -109,7 +119,10 @@ void main() {
       act: (bloc) => bloc.add(
         const SignupEvent(name: tName, email: tEmail, password: tPassword),
       ),
-      expect: () => [AuthLoading(), AuthError(message: tServerFailure.message)],
+      expect: () => [
+        const SignupLoadingState(),
+        SignupFailedState(tServerFailure.message),
+      ],
       verify: (_) {
         verify(
           () => mockSignupUseCase.call(tName, tEmail, tPassword),
@@ -120,28 +133,63 @@ void main() {
 
   group('LogoutEvent', () {
     blocTest<AuthBloc, AuthState>(
-      'emits [AuthLoading, LoggedoutState] when logout is successful',
+      'emits [LogoutLoadingState, LoggedoutState] when logout is successful',
       build: () {
         when(() => mockLogoutUseCase.call()).thenAnswer((_) async {});
         return authBloc;
       },
       act: (bloc) => bloc.add(const LogoutEvent()),
-      expect: () => [AuthLoading(), const LoggedoutState()],
+      expect: () => [const LogoutLoadingState(), const LoggedoutState()],
       verify: (_) {
         verify(() => mockLogoutUseCase.call()).called(1);
       },
     );
 
     blocTest<AuthBloc, AuthState>(
-      'emits [AuthLoading, AuthError] when logout fails',
+      'emits [LogoutLoadingState, LogoutFailedState] when logout fails',
       build: () {
         when(() => mockLogoutUseCase.call()).thenThrow(tServerFailure);
         return authBloc;
       },
       act: (bloc) => bloc.add(const LogoutEvent()),
-      expect: () => [AuthLoading(), AuthError(message: tServerFailure.message)],
+      expect: () => [
+        const LogoutLoadingState(),
+        LogoutFailedState(tServerFailure.message),
+      ],
       verify: (_) {
         verify(() => mockLogoutUseCase.call()).called(1);
+      },
+    );
+  });
+
+  group('CheckAuthenticatedEvent', () {
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthInitial, AuthenticatedState] when user is authenticated',
+      build: () {
+        when(
+          () => mockCheckAuthenticatedUseCase.call(),
+        ).thenAnswer((_) async => true);
+        return authBloc;
+      },
+      act: (bloc) => bloc.add(const CheckAuthenticatedEvent()),
+      expect: () => [AuthInitial(), const AuthenticatedState()],
+      verify: (_) {
+        verify(() => mockCheckAuthenticatedUseCase.call()).called(1);
+      },
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthInitial, UnAuthenticatedState] when user is not authenticated',
+      build: () {
+        when(
+          () => mockCheckAuthenticatedUseCase.call(),
+        ).thenAnswer((_) async => false);
+        return authBloc;
+      },
+      act: (bloc) => bloc.add(const CheckAuthenticatedEvent()),
+      expect: () => [AuthInitial(), const UnAuthenticatedState()],
+      verify: (_) {
+        verify(() => mockCheckAuthenticatedUseCase.call()).called(1);
       },
     );
   });

@@ -2,7 +2,9 @@ import 'package:chat_app/core/error/failure.dart';
 import 'package:chat_app/core/network/network_info.dart';
 import 'package:chat_app/features/auth/data/datasources/local_data_source.dart';
 import 'package:chat_app/features/auth/data/datasources/remote_data_source.dart';
+import 'package:chat_app/features/auth/data/models/user.dart';
 import 'package:chat_app/features/auth/data/repository/auth_repository_impl.dart';
+import 'package:chat_app/features/auth/domain/entities/user.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -185,6 +187,127 @@ void main() {
       verify(() => mockLocalDataSource.deleteToken()).called(1);
       verifyNoMoreInteractions(mockLocalDataSource);
       verifyZeroInteractions(mockRemoteDataSource);
+    });
+  });
+
+  group('getMe', () {
+    const tToken = 'sample_token';
+    const tUserModel = UserModel(
+      id: '1',
+      name: 'Test User',
+      email: 'test@test.com',
+    );
+    final User tUser = tUserModel.toEntity();
+    final tServerFailure = const ServerFailure('Server Error');
+
+    runTestsOnline(() {
+      test(
+        'should return User when token is found and remote call is successful',
+        () async {
+          // arrange
+          when(
+            () => mockLocalDataSource.getToken(),
+          ).thenAnswer((_) async => tToken);
+          when(
+            () => mockRemoteDataSource.getMe(any()),
+          ).thenAnswer((_) async => const Right(tUserModel));
+          // act
+          final result = await repository.getMe();
+          // assert
+          expect(result, Right<Failure, User>(tUser));
+          verify(() => mockLocalDataSource.getToken()).called(1);
+          verify(() => mockRemoteDataSource.getMe(tToken)).called(1);
+        },
+      );
+
+      test('should return ServerFailure when no token is found', () async {
+        // arrange
+        when(
+          () => mockLocalDataSource.getToken(),
+        ).thenAnswer((_) async => null);
+        // act
+        final result = await repository.getMe();
+        // assert
+        expect(result, const Left(ServerFailure('No token found')));
+        verify(() => mockLocalDataSource.getToken()).called(1);
+        verifyZeroInteractions(mockRemoteDataSource);
+      });
+
+      test('should return Failure when remote call is unsuccessful', () async {
+        // arrange
+        when(
+          () => mockLocalDataSource.getToken(),
+        ).thenAnswer((_) async => tToken);
+        when(
+          () => mockRemoteDataSource.getMe(any()),
+        ).thenAnswer((_) async => Left(tServerFailure));
+        // act
+        final result = await repository.getMe();
+        // assert
+        expect(result, Left(tServerFailure));
+        verify(() => mockLocalDataSource.getToken()).called(1);
+        verify(() => mockRemoteDataSource.getMe(tToken)).called(1);
+      });
+    });
+
+    runTestsOffline(() {
+      test('should return NetworkFailure when device is offline', () async {
+        // act
+        final result = await repository.getMe();
+        // assert
+        expect(result, const Left(NetworkFailure('No Internet Connection')));
+        verifyZeroInteractions(mockRemoteDataSource);
+        verifyZeroInteractions(mockLocalDataSource);
+      });
+    });
+  });
+
+  group('isAuthenticated', () {
+    const tToken = 'sample_token';
+    const tUserModel = UserModel(
+      id: '1',
+      name: 'Test User',
+      email: 'test@test.com',
+    );
+    final tServerFailure = const ServerFailure('Server Error');
+
+    runTestsOnline(() {
+      test('should return true when getMe returns a user', () async {
+        // arrange
+        when(
+          () => mockLocalDataSource.getToken(),
+        ).thenAnswer((_) async => tToken);
+        when(
+          () => mockRemoteDataSource.getMe(any()),
+        ).thenAnswer((_) async => const Right(tUserModel));
+        // act
+        final result = await repository.isAuthenticated();
+        // assert
+        expect(result, true);
+      });
+
+      test('should return false when getMe returns a failure', () async {
+        // arrange
+        when(
+          () => mockLocalDataSource.getToken(),
+        ).thenAnswer((_) async => tToken);
+        when(
+          () => mockRemoteDataSource.getMe(any()),
+        ).thenAnswer((_) async => Left(tServerFailure));
+        // act
+        final result = await repository.isAuthenticated();
+        // assert
+        expect(result, false);
+      });
+    });
+
+    runTestsOffline(() {
+      test('should return false when device is offline', () async {
+        // act
+        final result = await repository.isAuthenticated();
+        // assert
+        expect(result, false);
+      });
     });
   });
 }

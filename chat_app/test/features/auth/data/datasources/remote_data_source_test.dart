@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:chat_app/core/error/failure.dart';
 import 'package:chat_app/features/auth/data/datasources/remote_data_source.dart';
+import 'package:chat_app/features/auth/data/models/user.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -10,7 +11,7 @@ import 'package:mocktail/mocktail.dart';
 class MockHttpClient extends Mock implements http.Client {}
 
 void main() {
-  late RemoteDataSource dataSource;
+  late RemoteDataSourceImpl dataSource;
   late MockHttpClient mockHttpClient;
   const tBaseUrl =
       'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
@@ -30,7 +31,7 @@ void main() {
     final tBody = jsonEncode({'email': tEmail, 'password': tPassword});
 
     test(
-      'should return a token string when the response code is 200 (success)',
+      'should return a token string when the response code is 201 (success)',
       () async {
         // arrange
         when(
@@ -44,7 +45,7 @@ void main() {
             jsonEncode({
               'data': {'access_token': tToken},
             }),
-            200,
+            201,
           ),
         );
 
@@ -61,7 +62,7 @@ void main() {
     );
 
     test(
-      'should return a ServerFailure when the response code is not 200',
+      'should return an UnauthorizedFailure when the response code is 401',
       () async {
         // arrange
         when(
@@ -70,13 +71,52 @@ void main() {
             headers: any(named: 'headers'),
             body: any(named: 'body'),
           ),
-        ).thenAnswer((_) async => http.Response('Login failed', 401));
+        ).thenAnswer((_) async => http.Response('Unauthorized', 401));
 
         // act
         final result = await dataSource.login(tEmail, tPassword);
 
         // assert
-        expect(result, const Left(ServerFailure('Login failed')));
+        expect(
+          result,
+          const Left(UnauthorizedFailure('Invalid email or password')),
+        );
+        verify(
+          () => mockHttpClient.post(tLoginUrl, headers: tHeaders, body: tBody),
+        ).called(1);
+        verifyNoMoreInteractions(mockHttpClient);
+      },
+    );
+
+    test(
+      'should return a ServerFailure when the response code is not 201 or 401',
+      () async {
+        // arrange
+        when(
+          () => mockHttpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'message': 'Something went wrong'}),
+            500,
+          ),
+        );
+
+        // act
+        final result = await dataSource.login(tEmail, tPassword);
+
+        // assert
+        expect(
+          result,
+          const Left(
+            ServerFailure(
+              'Login failed, please try again. Something went wrong',
+            ),
+          ),
+        );
         verify(
           () => mockHttpClient.post(tLoginUrl, headers: tHeaders, body: tBody),
         ).called(1);
@@ -132,17 +172,77 @@ void main() {
             headers: any(named: 'headers'),
             body: any(named: 'body'),
           ),
-        ).thenAnswer((_) async => http.Response('Registration failed', 400));
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'message': 'Email already exists'}),
+            400,
+          ),
+        );
 
         // act
         final result = await dataSource.register(tName, tEmail, tPassword);
 
         // assert
-        expect(result, const Left(ServerFailure('Registration failed')));
+        expect(
+          result,
+          const Left(
+            ServerFailure(
+              'Registration failed, please try again. Email already exists',
+            ),
+          ),
+        );
         verify(
           () =>
               mockHttpClient.post(tRegisterUrl, headers: tHeaders, body: tBody),
         ).called(1);
+        verifyNoMoreInteractions(mockHttpClient);
+      },
+    );
+  });
+
+  group('getMe', () {
+    const tToken = 'sample_token';
+    final tUserUrl = Uri.parse('$tBaseUrl/auth/user');
+    final tHeaders = {
+      'Content-Type': 'application/json',
+      'authorization': 'Bearer $tToken ',
+    };
+    final tUserMap = {'id': '1', 'name': 'Test User', 'email': 'test@test.com'};
+
+    test(
+      'should return user data when the response code is 200 (success)',
+      () async {
+        // arrange
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode({'data': tUserMap}), 200),
+        );
+
+        // act
+        final result = await dataSource.getMe(tToken);
+
+        // assert
+        expect(result, Right<Failure, UserModel>(UserModel.fromJson(tUserMap)));
+        verify(() => mockHttpClient.get(tUserUrl, headers: tHeaders)).called(1);
+        verifyNoMoreInteractions(mockHttpClient);
+      },
+    );
+
+    test(
+      'should return a ServerFailure when the response code is not 200',
+      () async {
+        // arrange
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async => http.Response('Not Found', 404));
+
+        // act
+        final result = await dataSource.getMe(tToken);
+
+        // assert
+        expect(result, const Left(ServerFailure('Failed to fetch user')));
+        verify(() => mockHttpClient.get(tUserUrl, headers: tHeaders)).called(1);
         verifyNoMoreInteractions(mockHttpClient);
       },
     );

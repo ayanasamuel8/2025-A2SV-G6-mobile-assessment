@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/error/failure.dart';
+import '../models/user.dart';
 
 abstract class RemoteDataSource {
   Future<Either<Failure, String>> login(String email, String password);
@@ -11,7 +12,7 @@ abstract class RemoteDataSource {
     String email,
     String password,
   );
-  // Future<Either<Failure, Map<String, dynamic>>> getMe(String token);
+  Future<Either<Failure, UserModel>> getMe(String token);
 }
 
 class RemoteDataSourceImpl implements RemoteDataSource {
@@ -29,10 +30,13 @@ class RemoteDataSourceImpl implements RemoteDataSource {
       body: jsonEncode({'email': email, 'password': password}),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 201) {
       return Right(jsonDecode(response.body)['data']['access_token']);
+    } else if (response.statusCode == 401) {
+      return const Left(UnauthorizedFailure('Invalid email or password'));
     } else {
-      return const Left(ServerFailure('Login failed'));
+      final message = jsonDecode(response.body)['message'] ?? '';
+      return Left(ServerFailure('Login failed, please try again. $message'));
     }
   }
 
@@ -51,25 +55,28 @@ class RemoteDataSourceImpl implements RemoteDataSource {
     if (response.statusCode == 201) {
       return const Right(null);
     } else {
-      return const Left(ServerFailure('Registration failed'));
+      final message = jsonDecode(response.body)['message'] ?? '';
+      return Left(
+        ServerFailure('Registration failed, please try again. $message'),
+      );
     }
   }
 
-  /// future integration!
-  // @override
-  // Future<Either<Failure, Map<String, dynamic>>> getMe(String token) async {
-  //   final response = await client.get(
-  //     Uri.parse('$_baseUrl/auth/user'),
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       'authorization': 'Bearer $token ',
-  //     },
-  //   );
+  @override
+  Future<Either<Failure, UserModel>> getMe(String token) async {
+    final response = await client.get(
+      Uri.parse('$_baseUrl/auth/user'),
+      headers: {
+        'Content-Type': 'application/json',
+        'authorization': 'Bearer $token ',
+      },
+    );
 
-  //   if (response.statusCode == 200) {
-  //     return Right(jsonDecode(response.body)['data']);
-  //   } else {
-  //     return const Left(ServerFailure('Failed to fetch user'));
-  //   }
-  // }
+    if (response.statusCode == 200) {
+      final user = UserModel.fromJson(jsonDecode(response.body)['data']);
+      return Right(user);
+    } else {
+      return const Left(ServerFailure('Failed to fetch user'));
+    }
+  }
 }
