@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/user.dart';
@@ -77,6 +78,20 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     } else {
       await logout();
+      return const Left(NetworkFailure('No Internet Connection'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<User>>> searchUsers(String query) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final userModelList = await remoteDataSource.searchUsers(query);
+        return Right(userModelList);
+      } on ServerException {
+        return const Left(ServerFailure('Failed to search users'));
+      }
+    } else {
       return const Left(NetworkFailure('No Internet Connection'));
     }
   }

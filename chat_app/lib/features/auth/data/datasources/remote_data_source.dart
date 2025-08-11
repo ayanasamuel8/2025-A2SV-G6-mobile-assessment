@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dartz/dartz.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../../core/error/exception.dart';
 import '../../../../core/error/failure.dart';
 import '../models/user.dart';
 
@@ -14,6 +15,7 @@ abstract class RemoteDataSource {
     String confirmPassword,
   );
   Future<Either<Failure, UserModel>> getMe(String token);
+  Future<List<UserModel>> searchUsers(String query);
 }
 
 class RemoteDataSourceImpl implements RemoteDataSource {
@@ -86,6 +88,24 @@ class RemoteDataSourceImpl implements RemoteDataSource {
       return Right(user);
     } else {
       return const Left(ServerFailure('Failed to fetch user'));
+    }
+  }
+
+  @override
+  Future<List<UserModel>> searchUsers(String query) async {
+    final url = Uri.parse('$_baseUrl/auth/search?name=$query');
+
+    final response = await client.get(url);
+
+    if (response.statusCode == 200) {
+      try {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => UserModel.fromJson(json)).toList();
+      } catch (e) {
+        throw ServerException();
+      }
+    } else {
+      throw ServerException();
     }
   }
 }

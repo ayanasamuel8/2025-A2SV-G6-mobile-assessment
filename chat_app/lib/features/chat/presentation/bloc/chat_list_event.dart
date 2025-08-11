@@ -18,3 +18,17 @@ final class DeleteChatEvent extends ChatListEvent {
   @override
   List<Object> get props => [chatId];
 }
+
+final class _NewMessageForListReceived extends ChatListEvent {
+  final MessageEntity message;
+  const _NewMessageForListReceived(this.message);
+  @override
+  List<Object> get props => [message];
+}
+
+final class _ChatInListMarkedAsRead extends ChatListEvent {
+  final String chatId;
+  const _ChatInListMarkedAsRead(this.chatId);
+  @override
+  List<Object> get props => [chatId];
+}

@@ -14,4 +14,5 @@ abstract class AuthRepository {
   Future<Either<Failure, User>> getMe();
   Future<bool> isAuthenticated();
   Future<void> logout();
+  Future<Either<Failure, List<User>>> searchUsers(String query);
 }

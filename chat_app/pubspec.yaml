@@ -48,6 +48,8 @@ dependencies:
   shared_preferences: ^2.5.3
   meta: ^1.16.0
   socket_io_client: ^3.1.2
+  bloc_concurrency: ^0.3.0
+  stream_transform: ^2.1.1
 
 dev_dependencies:
   flutter_test:

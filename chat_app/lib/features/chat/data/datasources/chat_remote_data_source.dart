@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -118,7 +119,12 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     );
 
     if (response.statusCode == 201) {
-      return ChatModel.fromJson(json.decode(response.body));
+      final chatModel = ChatModel.fromJson(json.decode(response.body));
+      log(
+        "++++++=================================================" +
+            chatModel.toString(),
+      );
+      return chatModel;
     } else {
       throw ServerException();
     }
@@ -130,7 +136,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
 
     _socket = io.io(
       _socketUrl,
-      io.OptionBuilder().setTransports(['websocket']).setAuth({
+      io.OptionBuilder().setTransports(<String>['websocket']).setAuth({
         'token': token,
       }).build(),
     );

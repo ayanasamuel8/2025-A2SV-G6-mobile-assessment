@@ -15,13 +15,8 @@ import '../widgets/message_input_area_widget.dart';
 import '../widgets/message_list_view_widget.dart';
 
 class ChatThreadPage extends StatefulWidget {
-  const ChatThreadPage({
-    super.key,
-    required this.chat,
-    required this.currentUserId,
-  });
+  const ChatThreadPage({super.key, required this.chat});
   final ChatEntity chat;
-  final String currentUserId;
 
   @override
   State<ChatThreadPage> createState() => _ChatThreadPageState();
@@ -33,7 +28,9 @@ class _ChatThreadPageState extends State<ChatThreadPage> {
   @override
   void initState() {
     super.initState();
-    di.sl<ChatRepository>().markChatAsRead(widget.chat.id);
+    if (widget.chat.id.isNotEmpty) {
+      di.sl<ChatRepository>().markChatAsRead(widget.chat.id);
+    }
   }
 
   @override
@@ -66,8 +63,7 @@ class _ChatThreadPageState extends State<ChatThreadPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final currentUserId = authState.user!.id;
-    final profileUrl =
-        AppAvatars.avatars[Random().nextInt(AppAvatars.avatars.length - 1)];
+    final profileUrl = AppAvatars.avatars[1];
 
     return BlocListener<ChatThreadBloc, ChatThreadState>(
       listener: (context, state) {

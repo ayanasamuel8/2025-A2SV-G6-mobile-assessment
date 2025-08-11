@@ -13,6 +13,7 @@ import 'features/auth/domain/usecases/check_authenticated_usecase.dart';
 import 'features/auth/domain/usecases/get_me_usecase.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
 import 'features/auth/domain/usecases/logout_usecase.dart';
+import 'features/auth/domain/usecases/search_users_usecase.dart';
 import 'features/auth/domain/usecases/signup_usecase.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/chat/data/datasources/chat_local_data_source.dart';
@@ -26,6 +27,7 @@ import 'features/chat/domain/usecases/get_messages_usecase.dart';
 import 'features/chat/domain/usecases/initiate_chat_usecase.dart';
 import 'features/chat/presentation/bloc/chat_list_bloc.dart';
 import 'features/chat/presentation/bloc/chat_thread_bloc.dart';
+import 'features/chat/presentation/bloc/user_search_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -103,11 +105,13 @@ Future<void> init() async {
   sl.registerLazySingleton(() => InitiateChatUseCase(sl()));
   sl.registerLazySingleton(() => DeleteChatUseCase(sl()));
 
+  sl.registerLazySingleton(() => SearchUsersUseCase(sl()));
+
   // ===================================================================
   // PRESENTATION LAYER (BLoCs)
   // ===================================================================
   // AuthBloc depends on its use cases. This is correct.
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => AuthBloc(
       chatRepository: sl(),
       signupUseCase: sl(),
@@ -117,6 +121,8 @@ Future<void> init() async {
       getMeUseCase: sl(),
     ),
   );
+
+  sl.registerFactory(() => UserSearchBloc(searchUsersUseCase: sl()));
 
   // ChatListBloc depends on its use cases. This is correct.
   sl.registerFactory(

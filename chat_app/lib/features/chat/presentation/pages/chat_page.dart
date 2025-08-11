@@ -12,6 +12,7 @@ import '../bloc/chat_thread_bloc.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/story_widget.dart';
 import 'chat_thread_page.dart';
+import 'new_chat_page.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -22,7 +23,6 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
-  bool _searchExpanded = false;
 
   static const double _minExtent = 0.70;
   static const double _initialExtent = 0.85;
@@ -90,13 +90,19 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: buildSearchBar(
-                          _searchExpanded,
-                          _searchCtrl,
-                          _showLargeStories,
-                          _revealT,
-                          () {
+                          onLogout: () {
+                            _showLogoutConfirmationDialog(context);
+                          },
+                          context,
+                          showLargeStories: _showLargeStories,
+                          revealT: _revealT,
+                          onTap: () {
                             setState(() {
-                              _searchExpanded = !_searchExpanded;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const NewChatPage(),
+                                ),
+                              );
                             });
                           },
                         ),
@@ -148,6 +154,39 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     return const SizedBox.shrink();
   }
 
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    // We use the root context from the Builder to ensure it can find the BLoC.
+    final authBloc = context.read<AuthBloc>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                // First, close the dialog
+                Navigator.of(dialogContext).pop();
+                // Then, dispatch the logout event.
+                // context.read is used for one-time actions in callbacks.
+                authBloc.add(const LogoutEvent());
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildDraggableChats(BuildContext context, chats, currentUser) {
     return DraggableScrollableSheet(
       initialChildSize: _initialExtent,
@@ -195,11 +234,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                     return ListTile(
                       leading: CircleAvatar(
                         radius: 40,
-                        backgroundImage: NetworkImage(
-                          AppAvatars.avatars[Random().nextInt(
-                            AppAvatars.avatars.length - 1,
-                          )],
-                        ),
+                        backgroundImage: NetworkImage(AppAvatars.avatars[1]),
                         child: Stack(
                           children: [
                             if (Random().nextBool())
@@ -270,10 +305,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                             builder: (_) => BlocProvider(
                               create: (context) => di.sl<ChatThreadBloc>()
                                 ..add(FetchThreadDataEvent(chatId: chat.id)),
-                              child: ChatThreadPage(
-                                chat: chat,
-                                currentUserId: currentUser!.id,
-                              ),
+                              child: ChatThreadPage(chat: chat),
                             ),
                           ),
                         );
