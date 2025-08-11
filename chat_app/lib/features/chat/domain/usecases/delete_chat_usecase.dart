@@ -8,7 +8,7 @@ class DeleteChatUseCase {
 
   DeleteChatUseCase(this.repository);
 
-  Future<Either<Failure, void>> call(String chatId, String token) {
-    return repository.deleteChat(chatId, token);
+  Future<Either<Failure, void>> call(String chatId) {
+    return repository.deleteChat(chatId);
   }
 }

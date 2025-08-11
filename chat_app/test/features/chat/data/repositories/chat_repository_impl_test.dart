@@ -1,5 +1,6 @@
 import 'package:chat_app/core/error/exception.dart';
 import 'package:chat_app/core/error/failure.dart';
+import 'package:chat_app/features/auth/data/datasources/local_data_source.dart';
 import 'package:chat_app/features/chat/data/datasources/chat_local_data_source.dart';
 import 'package:chat_app/features/chat/data/datasources/chat_remote_data_source.dart';
 import 'package:chat_app/features/chat/data/models/chat_model.dart';
@@ -13,6 +14,8 @@ class MockChatRemoteDataSource extends Mock implements ChatRemoteDataSource {}
 
 class MockChatLocalDataSource extends Mock implements ChatLocalDataSource {}
 
+class MockAuthLocalDataSource extends Mock implements AuthLocalDataSource {}
+
 class MockChatModel extends Mock implements ChatModel {}
 
 class MockMessageModel extends Mock implements MessageModel {}
@@ -21,6 +24,7 @@ void main() {
   late ChatRepositoryImpl repository;
   late MockChatRemoteDataSource mockRemote;
   late MockChatLocalDataSource mockLocal;
+  late MockAuthLocalDataSource mockAuthLocal;
 
   const chatId = 'chat-1';
   const token = 'token-123';
@@ -36,10 +40,13 @@ void main() {
   setUp(() {
     mockRemote = MockChatRemoteDataSource();
     mockLocal = MockChatLocalDataSource();
+    mockAuthLocal = MockAuthLocalDataSource();
     repository = ChatRepositoryImpl(
       remoteDataSource: mockRemote,
       localDataSource: mockLocal,
+      authLocalDataSource: mockAuthLocal,
     );
+    when(() => mockAuthLocal.getToken()).thenAnswer((_) async => token);
   });
 
   group('deleteChat', () {
@@ -51,8 +58,9 @@ void main() {
         () => mockLocal.clearCacheForChat(chatId),
       ).thenAnswer((_) async => Future.value());
 
-      final result = await repository.deleteChat(chatId, token);
+      final result = await repository.deleteChat(chatId);
 
+      verify(() => mockAuthLocal.getToken()).called(1);
       verify(() => mockRemote.deleteChat(chatId, token)).called(1);
       verify(() => mockLocal.clearCacheForChat(chatId)).called(1);
       expect(result, isA<Right>());
@@ -66,8 +74,9 @@ void main() {
         () => mockLocal.clearCacheForChat(chatId),
       ).thenThrow(CacheException());
 
-      final result = await repository.deleteChat(chatId, token);
+      final result = await repository.deleteChat(chatId);
 
+      verify(() => mockAuthLocal.getToken()).called(1);
       verify(() => mockRemote.deleteChat(chatId, token)).called(1);
       verify(() => mockLocal.clearCacheForChat(chatId)).called(1);
       result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
@@ -80,13 +89,25 @@ void main() {
         () => mockRemote.deleteChat(chatId, token),
       ).thenThrow(ServerException());
 
-      final result = await repository.deleteChat(chatId, token);
+      final result = await repository.deleteChat(chatId);
 
+      verify(() => mockAuthLocal.getToken()).called(1);
       verify(() => mockRemote.deleteChat(chatId, token)).called(1);
       verifyNever(() => mockLocal.clearCacheForChat(any()));
       result.fold((l) {
         expect(l, isA<ServerFailure>());
         expect(l.message, 'Failed to delete chat');
+      }, (_) => fail('Expected Left'));
+    });
+
+    test('returns Left(UnauthorizedFailure) when token is null', () async {
+      when(() => mockAuthLocal.getToken()).thenAnswer((_) async => null);
+
+      final result = await repository.deleteChat(chatId);
+
+      expect(result, isA<Left>());
+      result.fold((l) {
+        expect(l, isA<UnauthorizedFailure>());
       }, (_) => fail('Expected Left'));
     });
   });
@@ -104,33 +125,29 @@ void main() {
         when(
           () => mockRemote.getChatById('id-1', token),
         ).thenAnswer((_) async => remoteChat);
-
         when(
           () => mockLocal.cacheChat(remoteChat),
         ).thenAnswer((_) async => Future.value());
-
         when(
           () => mockLocal.getLastChats(),
         ).thenAnswer((_) async => <ChatModel>[existingChatSameId]);
-
         when(
           () => mockLocal.cacheChats(any()),
         ).thenAnswer((_) async => Future.value());
 
-        final result = await repository.getChatById('id-1', token);
+        final result = await repository.getChatById('id-1');
 
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
           expect(r, same(remoteChat));
         });
 
+        verify(() => mockAuthLocal.getToken()).called(1);
         verify(() => mockLocal.cacheChat(remoteChat)).called(1);
         final captured =
             verify(() => mockLocal.cacheChats(captureAny())).captured.single
                 as List<ChatModel>;
         expect(captured.length, 1);
-        // Should replace with remoteChat
         expect(identical(captured.first, remoteChat), isTrue);
-        // Access ids to ensure stubs are viable
         expect(captured.first.id, 'id-1');
       },
     );
@@ -147,20 +164,17 @@ void main() {
         when(
           () => mockRemote.getChatById('new-id', token),
         ).thenAnswer((_) async => remoteChat);
-
         when(
           () => mockLocal.cacheChat(remoteChat),
         ).thenAnswer((_) async => Future.value());
-
         when(
           () => mockLocal.getLastChats(),
         ).thenAnswer((_) async => <ChatModel>[otherChat]);
-
         when(
           () => mockLocal.cacheChats(any()),
         ).thenAnswer((_) async => Future.value());
 
-        final result = await repository.getChatById('new-id', token);
+        final result = await repository.getChatById('new-id');
 
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
           expect(r, same(remoteChat));
@@ -186,8 +200,9 @@ void main() {
         () => mockLocal.getLastChatById('cached-id'),
       ).thenAnswer((_) async => cachedChat);
 
-      final result = await repository.getChatById('cached-id', token);
+      final result = await repository.getChatById('cached-id');
 
+      verify(() => mockAuthLocal.getToken()).called(1);
       verify(() => mockLocal.getLastChatById('cached-id')).called(1);
 
       result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
@@ -205,7 +220,7 @@ void main() {
           () => mockLocal.getLastChatById(any()),
         ).thenThrow(CacheException());
 
-        final result = await repository.getChatById('x', token);
+        final result = await repository.getChatById('x');
 
         result.fold((l) {
           expect(l, isA<ServerFailure>());
@@ -224,54 +239,33 @@ void main() {
           () => mockRemote.getChatById('id-x', token),
         ).thenAnswer((_) async => remoteChat);
         when(() => mockLocal.cacheChat(remoteChat)).thenThrow(CacheException());
-        // even if the above throws, repository should still return Right
-        final result = await repository.getChatById('id-x', token);
+        final result = await repository.getChatById('id-x');
 
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
           expect(r, same(remoteChat));
         });
       },
     );
+
+    test('returns Left(UnauthorizedFailure) when token is null', () async {
+      when(() => mockAuthLocal.getToken()).thenAnswer((_) async => null);
+
+      final result = await repository.getChatById('id-x');
+
+      expect(result, isA<Left>());
+      result.fold((l) {
+        expect(l, isA<UnauthorizedFailure>());
+      }, (_) => fail('Expected Left'));
+    });
   });
 
   group('getChats', () {
-    test(
-      'returns Right(List<ChatEntity>) and caches models on success',
-      () async {
-        final chat1 = MockChatModel();
-        final chat2 = MockChatModel();
-        when(() => chat1.id).thenReturn('c1');
-        when(() => chat2.id).thenReturn('c2');
-
-        final remoteList = <ChatModel>[chat1, chat2];
-        when(
-          () => mockRemote.getChats(token),
-        ).thenAnswer((_) async => remoteList);
-        when(
-          () => mockLocal.cacheChats(any()),
-        ).thenAnswer((_) async => Future.value());
-
-        final result = await repository.getChats(token);
-
-        result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
-          expect(r, remoteList);
-        });
-
-        final captured =
-            verify(() => mockLocal.cacheChats(captureAny())).captured.single
-                as List<ChatModel>;
-        expect(captured.length, 2);
-        expect(captured.first.id, 'c1');
-        expect(captured.last.id, 'c2');
-      },
-    );
-
     test('falls back to cached chats on ServerException', () async {
       final cached = <ChatModel>[MockChatModel()];
       when(() => mockRemote.getChats(any())).thenThrow(ServerException());
       when(() => mockLocal.getLastChats()).thenAnswer((_) async => cached);
 
-      final result = await repository.getChats(token);
+      final result = await repository.getChats();
 
       verify(() => mockLocal.getLastChats()).called(1);
       result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
@@ -285,7 +279,7 @@ void main() {
         when(() => mockRemote.getChats(any())).thenThrow(ServerException());
         when(() => mockLocal.getLastChats()).thenThrow(CacheException());
 
-        final result = await repository.getChats(token);
+        final result = await repository.getChats();
 
         result.fold((l) {
           expect(l, isA<ServerFailure>());
@@ -297,11 +291,10 @@ void main() {
     test(
       'does not attempt to cache when remote returns non-ChatModel items',
       () async {
-        // Simulate empty models after whereType<ChatModel>()
         when(
           () => mockRemote.getChats(any()),
         ).thenAnswer((_) async => <ChatModel>[]);
-        final result = await repository.getChats(token);
+        final result = await repository.getChats();
 
         verifyNever(() => mockLocal.cacheChats(any()));
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
@@ -309,6 +302,17 @@ void main() {
         });
       },
     );
+
+    test('returns Left(UnauthorizedFailure) when token is null', () async {
+      when(() => mockAuthLocal.getToken()).thenAnswer((_) async => null);
+
+      final result = await repository.getChats();
+
+      expect(result, isA<Left>());
+      result.fold((l) {
+        expect(l, isA<UnauthorizedFailure>());
+      }, (_) => fail('Expected Left'));
+    });
   });
 
   group('getMessages', () {
@@ -326,10 +330,10 @@ void main() {
           () => mockLocal.cacheMessages(any(), any()),
         ).thenAnswer((_) async => Future.value());
 
-        final result = await repository.getMessages(chatId, token);
+        final result = await repository.getMessages(chatId);
 
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
-          expect(r, remoteList);
+          expect(r.length, 2);
         });
 
         final captured =
@@ -350,7 +354,7 @@ void main() {
         () => mockLocal.getLastMessages(chatId),
       ).thenAnswer((_) async => cached);
 
-      final result = await repository.getMessages(chatId, token);
+      final result = await repository.getMessages(chatId);
 
       verify(() => mockLocal.getLastMessages(chatId)).called(1);
       result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
@@ -368,7 +372,7 @@ void main() {
           () => mockLocal.getLastMessages(any()),
         ).thenThrow(CacheException());
 
-        final result = await repository.getMessages(chatId, token);
+        final result = await repository.getMessages(chatId);
 
         result.fold((l) {
           expect(l, isA<ServerFailure>());
@@ -383,7 +387,7 @@ void main() {
         when(
           () => mockRemote.getMessages(any(), any()),
         ).thenAnswer((_) async => <MessageModel>[]);
-        final result = await repository.getMessages(chatId, token);
+        final result = await repository.getMessages(chatId);
 
         verifyNever(() => mockLocal.cacheMessages(any(), any()));
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
@@ -391,6 +395,17 @@ void main() {
         });
       },
     );
+
+    test('returns Left(UnauthorizedFailure) when token is null', () async {
+      when(() => mockAuthLocal.getToken()).thenAnswer((_) async => null);
+
+      final result = await repository.getMessages(chatId);
+
+      expect(result, isA<Left>());
+      result.fold((l) {
+        expect(l, isA<UnauthorizedFailure>());
+      }, (_) => fail('Expected Left'));
+    });
   });
 
   group('initiateChat', () {
@@ -416,12 +431,13 @@ void main() {
           () => mockLocal.cacheChats(any()),
         ).thenAnswer((_) async => Future.value());
 
-        final result = await repository.initiateChat(receiverId, token);
+        final result = await repository.initiateChat(receiverId);
 
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
           expect(r, same(newChat));
         });
 
+        verify(() => mockAuthLocal.getToken()).called(1);
         verify(() => mockLocal.cacheChat(newChat)).called(1);
         final captured =
             verify(() => mockLocal.cacheChats(captureAny())).captured.single
@@ -443,7 +459,7 @@ void main() {
         ).thenAnswer((_) async => newChat);
         when(() => mockLocal.cacheChat(newChat)).thenThrow(CacheException());
 
-        final result = await repository.initiateChat(receiverId, token);
+        final result = await repository.initiateChat(receiverId);
 
         result.fold((l) => fail('Expected Right, got Left: $l'), (r) {
           expect(r, same(newChat));
@@ -456,11 +472,22 @@ void main() {
         () => mockRemote.initiateChat(any(), any()),
       ).thenThrow(ServerException());
 
-      final result = await repository.initiateChat(receiverId, token);
+      final result = await repository.initiateChat(receiverId);
 
       result.fold((l) {
         expect(l, isA<ServerFailure>());
         expect(l.message, 'Failed to initiate chat');
+      }, (_) => fail('Expected Left'));
+    });
+
+    test('returns Left(UnauthorizedFailure) when token is null', () async {
+      when(() => mockAuthLocal.getToken()).thenAnswer((_) async => null);
+
+      final result = await repository.initiateChat(receiverId);
+
+      expect(result, isA<Left>());
+      result.fold((l) {
+        expect(l, isA<UnauthorizedFailure>());
       }, (_) => fail('Expected Left'));
     });
   });

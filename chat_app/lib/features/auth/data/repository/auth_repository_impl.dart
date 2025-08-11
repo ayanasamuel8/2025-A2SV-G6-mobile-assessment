@@ -9,7 +9,7 @@ import '../datasources/remote_data_source.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final RemoteDataSource remoteDataSource;
-  final LocalDataSource localDataSource;
+  final AuthLocalDataSource localDataSource;
   final NetworkInfo networkInfo;
 
   AuthRepositoryImpl({
@@ -36,9 +36,10 @@ class AuthRepositoryImpl implements AuthRepository {
     String name,
     String email,
     String password,
+    String confirmPassword,
   ) async {
     if (await networkInfo.isConnected) {
-      return remoteDataSource.register(name, email, password);
+      return remoteDataSource.register(name, email, password, confirmPassword);
     } else {
       return const Left(NetworkFailure('No Internet Connection'));
     }
@@ -71,9 +72,11 @@ class AuthRepositoryImpl implements AuthRepository {
           return Right(userData.toEntity());
         });
       } catch (e) {
+        await logout();
         return Left(ServerFailure(e.toString()));
       }
     } else {
+      await logout();
       return const Left(NetworkFailure('No Internet Connection'));
     }
   }

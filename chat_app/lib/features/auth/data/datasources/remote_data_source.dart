@@ -11,26 +11,27 @@ abstract class RemoteDataSource {
     String name,
     String email,
     String password,
+    String confirmPassword,
   );
   Future<Either<Failure, UserModel>> getMe(String token);
 }
 
 class RemoteDataSourceImpl implements RemoteDataSource {
-  final String _baseUrl =
-      'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
+  final String _baseUrl = 'https://chat-backend-efxf.onrender.com/api';
   final http.Client client;
 
   RemoteDataSourceImpl({required this.client});
 
   @override
   Future<Either<Failure, String>> login(String email, String password) async {
+    print('Login called with email: $email');
     final response = await client.post(
       Uri.parse('$_baseUrl/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return Right(jsonDecode(response.body)['data']['access_token']);
     } else if (response.statusCode == 401) {
       return const Left(UnauthorizedFailure('Invalid email or password'));
@@ -45,11 +46,18 @@ class RemoteDataSourceImpl implements RemoteDataSource {
     String name,
     String email,
     String password,
+    String confirmPassword,
   ) async {
+    print('Password length: ${password.length}');
     final response = await client.post(
       Uri.parse('$_baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name, 'email': email, 'password': password}),
+      body: jsonEncode({
+        'name': name,
+        'email': email,
+        'password': password,
+        'confirmPassword': confirmPassword,
+      }),
     );
 
     if (response.statusCode == 201) {
@@ -64,8 +72,9 @@ class RemoteDataSourceImpl implements RemoteDataSource {
 
   @override
   Future<Either<Failure, UserModel>> getMe(String token) async {
+    print('Fetching user with token: $token');
     final response = await client.get(
-      Uri.parse('$_baseUrl/auth/user'),
+      Uri.parse('$_baseUrl/auth/me'),
       headers: {
         'Content-Type': 'application/json',
         'authorization': 'Bearer $token ',

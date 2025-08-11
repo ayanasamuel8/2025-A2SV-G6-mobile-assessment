@@ -12,7 +12,8 @@ class SignupUseCase {
     String name,
     String email,
     String password,
+    String confirmPassword,
   ) {
-    return repository.register(name, email, password);
+    return repository.register(name, email, password, confirmPassword);
   }
 }

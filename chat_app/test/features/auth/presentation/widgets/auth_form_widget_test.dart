@@ -253,6 +253,7 @@ void main() {
             'name': 'Test User',
             'email': 'test@example.com',
             'password': 'password123',
+            'confirmPassword': 'password123',
           });
         },
       );

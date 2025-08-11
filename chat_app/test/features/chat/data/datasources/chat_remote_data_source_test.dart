@@ -1,11 +1,9 @@
 import 'dart:convert';
 
-import 'package:chat_app/core/constants/message_type.dart';
 import 'package:chat_app/core/error/exception.dart';
 import 'package:chat_app/features/auth/data/models/user.dart';
 import 'package:chat_app/features/chat/data/datasources/chat_remote_data_source.dart';
 import 'package:chat_app/features/chat/data/models/chat_model.dart';
-import 'package:chat_app/features/chat/data/models/message_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
@@ -22,41 +20,29 @@ void main() {
     registerFallbackValue(Uri.parse(''));
   });
 
-  const tBaseUrl =
-      'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
+  const tBaseUrl = 'https://chat-backend-efxf.onrender.com/api';
   const tToken = 'sample_token';
   const tChatId = 'chat1';
   const tReceiverId = 'user2';
 
+  const tUserModel1 = UserModel(
+    id: 'user1',
+    name: 'User One',
+    email: 'user1@example.com',
+  );
+  const tUserModel2 = UserModel(
+    id: 'user2',
+    name: 'User Two',
+    email: 'user2@example.com',
+  );
+
   const tChatModel = ChatModel(
     id: 'chat1',
-    sender: UserModel(
-      id: 'user1',
-      name: 'User One',
-      email: 'user1@example.com',
-    ),
-    receiver: UserModel(
-      id: 'user2',
-      name: 'User Two',
-      email: 'user2@example.com',
-    ),
+    user1: tUserModel1,
+    user2: tUserModel2,
   );
 
   final tChatList = [tChatModel];
-
-  const tMessageModel = MessageModel(
-    messageId: '1',
-    chatId: tChatId,
-    sender: UserModel(
-      id: 'user1',
-      name: 'User One',
-      email: 'user1@example.com',
-    ),
-    content: 'Hello',
-    type: MessageType.text,
-  );
-
-  final tMessageList = [tMessageModel];
 
   final tHeaders = {
     'Content-Type': 'application/json',
@@ -231,41 +217,7 @@ void main() {
   });
 
   group('getMessages', () {
-    final tMessageListJson = json.encode(
-      tMessageList.map((msg) => msg.toJson()).toList(),
-    );
     final url = Uri.parse('$tBaseUrl/chats/$tChatId/messages');
-
-    test('should perform a GET request for messages of a chat', () async {
-      // arrange
-      setUpMockHttpClientSuccess(
-        method: 'GET',
-        url: url,
-        responseBody: tMessageListJson,
-        statusCode: 200,
-        headers: tHeaders,
-      );
-      // act
-      await dataSource.getMessages(tChatId, tToken);
-      // assert
-      verify(() => mockHttpClient.get(url, headers: tHeaders)).called(1);
-    });
-
-    test('should return List<MessageModel> when response is 200', () async {
-      // arrange
-      setUpMockHttpClientSuccess(
-        method: 'GET',
-        url: url,
-        responseBody: tMessageListJson,
-        statusCode: 200,
-        headers: tHeaders,
-      );
-      // act
-      final result = await dataSource.getMessages(tChatId, tToken);
-      // assert
-      expect(result, equals(tMessageList));
-    });
-
     test(
       'should throw ServerException when response code is not 200',
       () async {

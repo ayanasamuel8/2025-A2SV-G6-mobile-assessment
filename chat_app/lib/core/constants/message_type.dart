@@ -8,13 +8,13 @@ enum MessageType {
   String toString() {
     switch (this) {
       case MessageType.text:
-        return 'Text';
+        return 'text';
       case MessageType.image:
-        return 'Image';
+        return 'image';
       case MessageType.video:
-        return 'Video';
+        return 'video';
       case MessageType.file:
-        return 'File';
+        return 'file';
     }
   }
 }

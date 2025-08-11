@@ -11,19 +11,19 @@ import 'package:mocktail/mocktail.dart';
 
 class MockRemoteDataSource extends Mock implements RemoteDataSource {}
 
-class MockLocalDataSource extends Mock implements LocalDataSource {}
+class MockAuthLocalDataSource extends Mock implements AuthLocalDataSource {}
 
 class MockNetworkInfo extends Mock implements NetworkInfo {}
 
 void main() {
   late AuthRepositoryImpl repository;
   late MockRemoteDataSource mockRemoteDataSource;
-  late MockLocalDataSource mockLocalDataSource;
+  late MockAuthLocalDataSource mockLocalDataSource;
   late MockNetworkInfo mockNetworkInfo;
 
   setUp(() {
     mockRemoteDataSource = MockRemoteDataSource();
-    mockLocalDataSource = MockLocalDataSource();
+    mockLocalDataSource = MockAuthLocalDataSource();
     mockNetworkInfo = MockNetworkInfo();
     repository = AuthRepositoryImpl(
       remoteDataSource: mockRemoteDataSource,
@@ -116,6 +116,7 @@ void main() {
     const tName = 'Test User';
     const tEmail = 'test@test.com';
     const tPassword = 'password';
+    const tConfirmPassword = 'password';
     final tServerFailure = const ServerFailure('Server Error');
 
     runTestsOnline(() {
@@ -124,16 +125,26 @@ void main() {
         () async {
           // arrange
           when(
-            () => mockRemoteDataSource.register(any(), any(), any()),
+            () => mockRemoteDataSource.register(any(), any(), any(), any()),
           ).thenAnswer((_) async => const Right(null));
 
           // act
-          final result = await repository.register(tName, tEmail, tPassword);
+          final result = await repository.register(
+            tName,
+            tEmail,
+            tPassword,
+            tConfirmPassword,
+          );
 
           // assert
           expect(result, const Right(null));
           verify(
-            () => mockRemoteDataSource.register(tName, tEmail, tPassword),
+            () => mockRemoteDataSource.register(
+              tName,
+              tEmail,
+              tPassword,
+              tConfirmPassword,
+            ),
           ).called(1);
           verifyNoMoreInteractions(mockRemoteDataSource);
           verifyZeroInteractions(mockLocalDataSource);
@@ -145,16 +156,26 @@ void main() {
         () async {
           // arrange
           when(
-            () => mockRemoteDataSource.register(any(), any(), any()),
+            () => mockRemoteDataSource.register(any(), any(), any(), any()),
           ).thenAnswer((_) async => Left(tServerFailure));
 
           // act
-          final result = await repository.register(tName, tEmail, tPassword);
+          final result = await repository.register(
+            tName,
+            tEmail,
+            tPassword,
+            tConfirmPassword,
+          );
 
           // assert
           expect(result, Left(tServerFailure));
           verify(
-            () => mockRemoteDataSource.register(tName, tEmail, tPassword),
+            () => mockRemoteDataSource.register(
+              tName,
+              tEmail,
+              tPassword,
+              tConfirmPassword,
+            ),
           ).called(1);
           verifyZeroInteractions(mockLocalDataSource);
         },
@@ -164,7 +185,12 @@ void main() {
     runTestsOffline(() {
       test('should return NetworkFailure when device is offline', () async {
         // act
-        final result = await repository.register(tName, tEmail, tPassword);
+        final result = await repository.register(
+          tName,
+          tEmail,
+          tPassword,
+          tConfirmPassword,
+        );
 
         // assert
         expect(result, const Left(NetworkFailure('No Internet Connection')));
@@ -248,17 +274,42 @@ void main() {
         verify(() => mockLocalDataSource.getToken()).called(1);
         verify(() => mockRemoteDataSource.getMe(tToken)).called(1);
       });
+
+      test(
+        'should call logout and return ServerFailure on exception',
+        () async {
+          // arrange
+          when(
+            () => mockLocalDataSource.getToken(),
+          ).thenThrow(Exception('error'));
+          when(
+            () => mockLocalDataSource.deleteToken(),
+          ).thenAnswer((_) async => Future.value());
+          // act
+          final result = await repository.getMe();
+          // assert
+          expect(result, isA<Left>());
+          verify(() => mockLocalDataSource.deleteToken()).called(1);
+        },
+      );
     });
 
     runTestsOffline(() {
-      test('should return NetworkFailure when device is offline', () async {
-        // act
-        final result = await repository.getMe();
-        // assert
-        expect(result, const Left(NetworkFailure('No Internet Connection')));
-        verifyZeroInteractions(mockRemoteDataSource);
-        verifyZeroInteractions(mockLocalDataSource);
-      });
+      test(
+        'should call logout and return NetworkFailure when device is offline',
+        () async {
+          // arrange
+          when(
+            () => mockLocalDataSource.deleteToken(),
+          ).thenAnswer((_) async => Future.value());
+          // act
+          final result = await repository.getMe();
+          // assert
+          expect(result, const Left(NetworkFailure('No Internet Connection')));
+          verify(() => mockLocalDataSource.deleteToken()).called(1);
+          verifyZeroInteractions(mockRemoteDataSource);
+        },
+      );
     });
   });
 
@@ -303,6 +354,10 @@ void main() {
 
     runTestsOffline(() {
       test('should return false when device is offline', () async {
+        // arrange
+        when(
+          () => mockLocalDataSource.deleteToken(),
+        ).thenAnswer((_) async => Future.value());
         // act
         final result = await repository.isAuthenticated();
         // assert

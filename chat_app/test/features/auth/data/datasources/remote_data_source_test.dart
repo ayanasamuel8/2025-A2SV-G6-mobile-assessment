@@ -13,8 +13,7 @@ class MockHttpClient extends Mock implements http.Client {}
 void main() {
   late RemoteDataSourceImpl dataSource;
   late MockHttpClient mockHttpClient;
-  const tBaseUrl =
-      'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
+  const tBaseUrl = 'https://chat-backend-efxf.onrender.com/api';
 
   setUp(() {
     mockHttpClient = MockHttpClient();
@@ -31,33 +30,36 @@ void main() {
     final tBody = jsonEncode({'email': tEmail, 'password': tPassword});
 
     test(
-      'should return a token string when the response code is 201 (success)',
+      'should return a token string when the response code is 200 or 201 (success)',
       () async {
-        // arrange
-        when(
-          () => mockHttpClient.post(
-            any(),
-            headers: any(named: 'headers'),
-            body: any(named: 'body'),
-          ),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'data': {'access_token': tToken},
-            }),
-            201,
-          ),
-        );
+        for (final statusCode in [200, 201]) {
+          // arrange
+          when(
+            () => mockHttpClient.post(
+              any(),
+              headers: any(named: 'headers'),
+              body: any(named: 'body'),
+            ),
+          ).thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'data': {'access_token': tToken},
+              }),
+              statusCode,
+            ),
+          );
 
-        // act
-        final result = await dataSource.login(tEmail, tPassword);
+          // act
+          final result = await dataSource.login(tEmail, tPassword);
 
-        // assert
-        expect(result, const Right(tToken));
-        verify(
-          () => mockHttpClient.post(tLoginUrl, headers: tHeaders, body: tBody),
-        ).called(1);
-        verifyNoMoreInteractions(mockHttpClient);
+          // assert
+          expect(result, const Right(tToken));
+          verify(
+            () =>
+                mockHttpClient.post(tLoginUrl, headers: tHeaders, body: tBody),
+          ).called(1);
+          verifyNoMoreInteractions(mockHttpClient);
+        }
       },
     );
 
@@ -89,7 +91,7 @@ void main() {
     );
 
     test(
-      'should return a ServerFailure when the response code is not 201 or 401',
+      'should return a ServerFailure when the response code is not 200, 201, or 401',
       () async {
         // arrange
         when(
@@ -129,12 +131,14 @@ void main() {
     const tName = 'Test User';
     const tEmail = 'test@example.com';
     const tPassword = 'password';
+    const tConfirmPassword = 'password';
     final tRegisterUrl = Uri.parse('$tBaseUrl/auth/register');
     final tHeaders = {'Content-Type': 'application/json'};
     final tBody = jsonEncode({
       'name': tName,
       'email': tEmail,
       'password': tPassword,
+      'confirmPassword': tConfirmPassword,
     });
 
     test(
@@ -150,7 +154,12 @@ void main() {
         ).thenAnswer((_) async => http.Response('Success', 201));
 
         // act
-        final result = await dataSource.register(tName, tEmail, tPassword);
+        final result = await dataSource.register(
+          tName,
+          tEmail,
+          tPassword,
+          tConfirmPassword,
+        );
 
         // assert
         expect(result, const Right(null));
@@ -180,7 +189,12 @@ void main() {
         );
 
         // act
-        final result = await dataSource.register(tName, tEmail, tPassword);
+        final result = await dataSource.register(
+          tName,
+          tEmail,
+          tPassword,
+          tConfirmPassword,
+        );
 
         // assert
         expect(
@@ -202,12 +216,16 @@ void main() {
 
   group('getMe', () {
     const tToken = 'sample_token';
-    final tUserUrl = Uri.parse('$tBaseUrl/auth/user');
+    final tUserUrl = Uri.parse('$tBaseUrl/auth/me');
     final tHeaders = {
       'Content-Type': 'application/json',
       'authorization': 'Bearer $tToken ',
     };
-    final tUserMap = {'id': '1', 'name': 'Test User', 'email': 'test@test.com'};
+    final tUserMap = {
+      '_id': '1',
+      'name': 'Test User',
+      'email': 'test@test.com',
+    };
 
     test(
       'should return user data when the response code is 200 (success)',

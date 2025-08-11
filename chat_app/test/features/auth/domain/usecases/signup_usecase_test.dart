@@ -20,20 +20,26 @@ void main() {
     const tName = 'Test User';
     const tEmail = 'test@example.com';
     const tPassword = 'password123';
+    const tConfirmPassword = 'password123';
 
     test(
       'should call AuthRepository.register with the correct parameters',
       () async {
         // Arrange
         when(
-          () => mockAuthRepository.register(any(), any(), any()),
+          () => mockAuthRepository.register(any(), any(), any(), any()),
         ).thenAnswer((_) async => const Right(null));
 
         // Act
-        await usecase(tName, tEmail, tPassword);
+        await usecase(tName, tEmail, tPassword, tConfirmPassword);
         // Assert
         verify(
-          () => mockAuthRepository.register(tName, tEmail, tPassword),
+          () => mockAuthRepository.register(
+            tName,
+            tEmail,
+            tPassword,
+            tConfirmPassword,
+          ),
         ).called(1);
         verifyNoMoreInteractions(mockAuthRepository);
       },
@@ -45,16 +51,26 @@ void main() {
         // Arrange
         final tServerFailure = const ServerFailure('Registration failed');
         when(
-          () => mockAuthRepository.register(any(), any(), any()),
+          () => mockAuthRepository.register(any(), any(), any(), any()),
         ).thenAnswer((_) async => Left(tServerFailure));
 
         // Act
-        final result = await usecase(tName, tEmail, tPassword);
+        final result = await usecase(
+          tName,
+          tEmail,
+          tPassword,
+          tConfirmPassword,
+        );
 
         // Assert
         expect(result, equals(Left(tServerFailure)));
         verify(
-          () => mockAuthRepository.register(tName, tEmail, tPassword),
+          () => mockAuthRepository.register(
+            tName,
+            tEmail,
+            tPassword,
+            tConfirmPassword,
+          ),
         ).called(1);
         verifyNoMoreInteractions(mockAuthRepository);
       },

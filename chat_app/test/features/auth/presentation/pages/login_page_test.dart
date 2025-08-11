@@ -1,6 +1,5 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:chat_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:chat_app/features/auth/presentation/pages/home_page.dart';
 import 'package:chat_app/features/auth/presentation/pages/login_page.dart';
 import 'package:chat_app/features/auth/presentation/pages/signup_page.dart';
 import 'package:chat_app/features/auth/presentation/widgets/auth_form_widget.dart';
@@ -32,7 +31,6 @@ void main() {
 
   Widget createWidgetUnderTest() {
     return BlocProvider<AuthBloc>.value(
-      // Provider is OUTSIDE all routes
       value: mockAuthBloc,
       child: MaterialApp(
         home: const LoginPage(),
@@ -55,10 +53,10 @@ void main() {
       expect(authForm.isLoading, isFalse);
     });
 
-    testWidgets('shows loading indicator when state is LoginLoadingState', (
+    testWidgets('shows loading indicator when state is AuthLoading', (
       WidgetTester tester,
     ) async {
-      when(() => mockAuthBloc.state).thenReturn(const LoginLoadingState());
+      when(() => mockAuthBloc.state).thenReturn(AuthLoading());
 
       await tester.pumpWidget(createWidgetUnderTest());
 
@@ -98,36 +96,14 @@ void main() {
       expect(captured.password, 'password');
     });
 
-    testWidgets(
-      'shows success SnackBar and navigates to HomePage on LoggedinState',
-      (WidgetTester tester) async {
-        whenListen(
-          mockAuthBloc,
-          Stream.fromIterable([AuthInitial(), const LoggedinState()]),
-          initialState: AuthInitial(),
-        );
-
-        await tester.pumpWidget(createWidgetUnderTest());
-        await tester.pump(); // First pump for the state change
-        await tester.pump(); // Pump for SnackBar animation
-
-        expect(find.text('Login successful!'), findsOneWidget);
-
-        await tester.pumpAndSettle(); // Pump for navigation
-
-        verify(() => mockNavigatorObserver.didPush(any(), any()));
-        expect(find.byType(HomePage), findsOneWidget);
-      },
-    );
-
-    testWidgets('shows error SnackBar on LoginFailedState', (
+    testWidgets('shows error SnackBar on AuthFailure', (
       WidgetTester tester,
     ) async {
       whenListen(
         mockAuthBloc,
         Stream.fromIterable([
           AuthInitial(),
-          const LoginFailedState('Error occurred'),
+          const AuthFailure('Error occurred'),
         ]),
         initialState: AuthInitial(),
       );

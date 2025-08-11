@@ -21,15 +21,17 @@ class SignupEvent extends AuthEvent {
   final String name;
   final String email;
   final String password;
+  final String confirmPassword;
 
   const SignupEvent({
     required this.name,
     required this.email,
     required this.password,
+    required this.confirmPassword,
   });
 
   @override
-  List<Object> get props => [name, email, password];
+  List<Object> get props => [name, email, password, confirmPassword];
 }
 
 class LogoutEvent extends AuthEvent {

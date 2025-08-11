@@ -9,7 +9,10 @@ class GetChatsUseCase {
 
   GetChatsUseCase(this.repository);
 
-  Future<Either<Failure, List<ChatEntity>>> call(String token) {
-    return repository.getChats(token);
+  Future<Either<Failure, List<ChatEntity>>> call() {
+    print('GetChatsUseCase called');
+    final response = repository.getChats();
+    print('GetChatsUseCase response: $response');
+    return response;
   }
 }

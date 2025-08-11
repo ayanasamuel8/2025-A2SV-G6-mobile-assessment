@@ -9,7 +9,7 @@ class InitiateChatUseCase {
 
   InitiateChatUseCase(this.repository);
 
-  Future<Either<Failure, ChatEntity>> call(String receiverId, String token) {
-    return repository.initiateChat(receiverId, token);
+  Future<Either<Failure, ChatEntity>> call(String receiverId) {
+    return repository.initiateChat(receiverId);
   }
 }

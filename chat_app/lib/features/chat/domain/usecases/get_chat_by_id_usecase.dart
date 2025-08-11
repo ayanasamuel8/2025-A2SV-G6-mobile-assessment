@@ -9,7 +9,7 @@ class GetChatByIdUsecase {
 
   GetChatByIdUsecase(this.repository);
 
-  Future<Either<Failure, ChatEntity>> call(String chatId, String token) {
-    return repository.getChatById(chatId, token);
+  Future<Either<Failure, ChatEntity>> call(String chatId) {
+    return repository.getChatById(chatId);
   }
 }

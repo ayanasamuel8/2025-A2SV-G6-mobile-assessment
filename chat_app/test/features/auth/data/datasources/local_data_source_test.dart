@@ -6,12 +6,12 @@ import 'package:mocktail/mocktail.dart';
 class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
 
 void main() {
-  late LocalDataSource localDataSource;
+  late AuthLocalDataSource localDataSource;
   late MockFlutterSecureStorage mockStorage;
 
   setUp(() {
     mockStorage = MockFlutterSecureStorage();
-    localDataSource = LocalDataSourceImpl(storage: mockStorage);
+    localDataSource = AuthLocalDataSourceImpl(storage: mockStorage);
   });
 
   group('LocalDataSource', () {

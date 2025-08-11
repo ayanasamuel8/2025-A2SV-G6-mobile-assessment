@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
+import '../../../../core/constants/message_type.dart';
 import '../../../../core/error/exception.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
+import '../models/realtime_event.dart';
 
 abstract class ChatRemoteDataSource {
   Future<List<ChatModel>> getChats(String token);
@@ -12,12 +16,24 @@ abstract class ChatRemoteDataSource {
   Future<List<MessageModel>> getMessages(String chatId, String token);
   Future<ChatModel> initiateChat(String receiverId, String token);
   Future<void> deleteChat(String chatId, String token);
+  void connect(String token);
+  void disconnect();
+  Stream<RealtimeEvent> getRealtimeEvents();
+  void sendMessage({
+    required String chatId,
+    required String content,
+    required MessageType type,
+  });
+  void markChatAsRead(String chatId);
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
+  io.Socket? _socket;
+  final StreamController<RealtimeEvent> _eventStreamController =
+      StreamController.broadcast();
   final http.Client client;
-  final String _baseUrl =
-      'https://g5-flutter-learning-path-be-tvum.onrender.com/api/v3';
+  final String _baseUrl = 'https://chat-backend-efxf.onrender.com/api';
+  final String _socketUrl = 'https://chat-backend-efxf.onrender.com';
 
   ChatRemoteDataSourceImpl({required this.client});
 
@@ -55,6 +71,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
 
   @override
   Future<List<ChatModel>> getChats(String token) async {
+    print('ChatRemoteDataSourceImpl.getChats called $token');
     final response = await client.get(
       Uri.parse('$_baseUrl/chats'),
       headers: {
@@ -105,5 +122,106 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     } else {
       throw ServerException();
     }
+  }
+
+  @override
+  Future<void> connect(String token) async {
+    if (_socket != null && _socket!.connected) return;
+
+    _socket = io.io(
+      _socketUrl,
+      io.OptionBuilder().setTransports(['websocket']).setAuth({
+        'token': token,
+      }).build(),
+    );
+
+    _socket!.onConnect((_) {
+      print('Socket connected');
+    });
+
+    _socket!.onDisconnect((_) => print('Socket disconnected'));
+
+    _socket!.onConnectError((err) => print('Socket connect error: $err'));
+
+    _registerSocketListeners();
+  }
+
+  void _registerSocketListeners() {
+    _socket!.on('message:received', (data) {
+      try {
+        final message = MessageModel.fromJson(data);
+        _eventStreamController.add(NewMessageEvent(message));
+
+        // IMPORTANT: Immediately acknowledge delivery back to the server.
+        _socket!.emit('message:delivered_ack', {
+          'messageId': message.messageId,
+          'chatId': message.chatId,
+        });
+      } catch (e) {
+        _eventStreamController.add(
+          RealtimeErrorEvent('Failed to parse received message: $e'),
+        );
+      }
+    });
+
+    _socket!.on('message:delivered', (data) {
+      try {
+        final message = MessageModel.fromJson(data);
+        _eventStreamController.add(NewMessageEvent(message));
+      } catch (e) {
+        _eventStreamController.add(
+          RealtimeErrorEvent('Failed to parse sent confirmation: $e'),
+        );
+      }
+    });
+
+    _socket!.on('messages:were_read', (data) {
+      final chatId = data['chatId'] as String;
+      _eventStreamController.add(MessagesHaveBeenReadEvent(chatId));
+    });
+
+    _socket!.on(
+      'error',
+      (data) => _eventStreamController.add(RealtimeErrorEvent(data.toString())),
+    );
+    _socket!.on(
+      'exception',
+      (data) => _eventStreamController.add(RealtimeErrorEvent(data.toString())),
+    );
+  }
+
+  @override
+  Stream<RealtimeEvent> getRealtimeEvents() {
+    return _eventStreamController.stream;
+  }
+
+  @override
+  void sendMessage({
+    required String chatId,
+    required String content,
+    required MessageType type,
+  }) {
+    if (_socket?.connected != true) {
+      _eventStreamController.add(
+        RealtimeErrorEvent('Cannot send message: Not connected.'),
+      );
+      return;
+    }
+    _socket!.emit('message:send', {
+      'chatId': chatId,
+      'content': content,
+      'type': type.toString(),
+    });
+  }
+
+  @override
+  void markChatAsRead(String chatId) {
+    _socket?.emit('chat:read', {'chatId': chatId});
+  }
+
+  @override
+  void disconnect() {
+    _socket?.dispose();
+    _eventStreamController.close();
   }
 }

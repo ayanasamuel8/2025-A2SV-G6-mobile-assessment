@@ -12,17 +12,17 @@ class SignupPage extends StatelessWidget {
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is SignupFailedState) {
+          if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
-          } else if (state is SignedupState) {
+          } else if (state is AuthSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Signup successful! Please log in.'),
+              SnackBar(
+                content: Text(state.message),
                 backgroundColor: Colors.green,
               ),
             );
@@ -31,21 +31,30 @@ class SignupPage extends StatelessWidget {
             );
           }
         },
-        child: AuthForm(
-          isLoading: context.watch<AuthBloc>().state is SignupLoadingState,
-          authMode: AuthMode.signup,
-          onSwitchMode: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-            );
-          },
-          onSubmit: (formData) {
-            final name = formData['name']!;
-            final email = formData['email']!;
-            final password = formData['password']!;
-            debugPrint('Signup with: $name, $email, $password');
-            context.read<AuthBloc>().add(
-              SignupEvent(name: name, email: email, password: password),
+        child: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            return AuthForm(
+              isLoading: state is AuthLoading,
+              authMode: AuthMode.signup,
+              onSwitchMode: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                );
+              },
+              onSubmit: (formData) {
+                final name = formData['name']!;
+                final email = formData['email']!;
+                final password = formData['password']!;
+                final confirmPassword = formData['confirmPassword']!;
+                context.read<AuthBloc>().add(
+                  SignupEvent(
+                    name: name,
+                    email: email,
+                    password: password,
+                    confirmPassword: confirmPassword,
+                  ),
+                );
+              },
             );
           },
         ),

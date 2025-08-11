@@ -20,7 +20,9 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(FakeRoute());
-    registerFallbackValue(const SignupEvent(name: '', email: '', password: ''));
+    registerFallbackValue(
+      const SignupEvent(name: '', email: '', password: '', confirmPassword: ''),
+    );
   });
 
   setUp(() {
@@ -28,9 +30,9 @@ void main() {
     mockNavigatorObserver = MockNavigatorObserver();
     when(() => mockAuthBloc.stream).thenAnswer((_) => const Stream.empty());
   });
+
   Widget createWidgetUnderTest() {
     return BlocProvider<AuthBloc>.value(
-      // Provider is OUTSIDE all routes
       value: mockAuthBloc,
       child: MaterialApp(
         home: const SignupPage(),
@@ -50,10 +52,10 @@ void main() {
       expect(authForm.isLoading, isFalse);
     });
 
-    testWidgets('shows loading indicator when state is SignupLoadingState', (
+    testWidgets('shows loading indicator when state is AuthLoading', (
       WidgetTester tester,
     ) async {
-      when(() => mockAuthBloc.state).thenReturn(const SignupLoadingState());
+      when(() => mockAuthBloc.state).thenReturn(AuthLoading());
       await tester.pumpWidget(createWidgetUnderTest());
 
       final authForm = tester.widget<AuthForm>(find.byType(AuthForm));
@@ -71,14 +73,16 @@ void main() {
         'name': 'Test User',
         'email': 'test@example.com',
         'password': 'password123',
+        'confirmPassword': 'password123',
       });
 
       verify(
         () => mockAuthBloc.add(
-          const SignupEvent(
+          SignupEvent(
             name: 'Test User',
             email: 'test@example.com',
             password: 'password123',
+            confirmPassword: 'password123',
           ),
         ),
       ).called(1);
@@ -99,18 +103,21 @@ void main() {
     });
 
     testWidgets(
-      'shows success SnackBar and navigates to LoginPage on SignedupState',
+      'shows success SnackBar and navigates to LoginPage on AuthSuccess',
       (WidgetTester tester) async {
         whenListen(
           mockAuthBloc,
-          Stream.fromIterable([AuthInitial(), const SignedupState()]),
+          Stream.fromIterable([
+            AuthInitial(),
+            AuthSuccess('Signup successful! Please log in.'),
+          ]),
           initialState: AuthInitial(),
         );
 
         await tester.pumpWidget(createWidgetUnderTest());
         await tester.pump(); // First pump for initial state
         await tester
-            .pump(); // Second pump for the listener to react to SignedupState
+            .pump(); // Second pump for the listener to react to AuthSuccess
 
         expect(find.text('Signup successful! Please log in.'), findsOneWidget);
 
@@ -121,15 +128,12 @@ void main() {
       },
     );
 
-    testWidgets('shows error SnackBar on SignupFailedState', (
+    testWidgets('shows error SnackBar on AuthFailure', (
       WidgetTester tester,
     ) async {
       whenListen(
         mockAuthBloc,
-        Stream.fromIterable([
-          AuthInitial(),
-          const SignupFailedState('Signup failed'),
-        ]),
+        Stream.fromIterable([AuthInitial(), AuthFailure('Signup failed')]),
         initialState: AuthInitial(),
       );
 

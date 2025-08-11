@@ -4,6 +4,10 @@ Color primary() {
   return const Color.fromARGB(255, 63, 81, 243);
 }
 
+Color secondary() {
+  return const Color.fromARGB(255, 73, 140, 240);
+}
+
 Color white() {
   return const Color.fromARGB(255, 255, 255, 255);
 }
@@ -41,4 +45,8 @@ Color grey() {
 
 Color darkGrey() {
   return const Color.fromARGB(255, 111, 111, 111);
+}
+
+Color bubbleBack() {
+  return const Color.fromARGB(255, 242, 247, 251);
 }

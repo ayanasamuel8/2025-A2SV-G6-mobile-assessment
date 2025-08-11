@@ -46,6 +46,8 @@ dependencies:
   flutter_native_splash: ^2.4.0
   google_fonts: ^6.3.0
   shared_preferences: ^2.5.3
+  meta: ^1.16.0
+  socket_io_client: ^3.1.2
 
 dev_dependencies:
   flutter_test:

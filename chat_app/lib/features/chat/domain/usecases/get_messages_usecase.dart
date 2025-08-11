@@ -9,10 +9,7 @@ class GetMessagesUsecase {
 
   GetMessagesUsecase(this.repository);
 
-  Future<Either<Failure, List<MessageEntity>>> call(
-    String chatId,
-    String token,
-  ) {
-    return repository.getMessages(chatId, token);
+  Future<Either<Failure, List<MessageEntity>>> call(String chatId) {
+    return repository.getMessages(chatId);
   }
 }

@@ -59,6 +59,7 @@ class _AuthFormState extends State<AuthForm> {
     };
     if (widget.authMode == AuthMode.signup) {
       formData['name'] = _nameController.text.trim();
+      formData['confirmPassword'] = _confirmPasswordController.text.trim();
     }
     widget.onSubmit(formData);
   }
