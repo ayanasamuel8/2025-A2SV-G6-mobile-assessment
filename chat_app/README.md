@@ -1,123 +1,107 @@
-# chat_app
+# Chat App
 
-A Flutter project implementing a chat application with authentication.
+A Flutter application with secure authentication and real-time 1:1 chatting, built with clean architecture for maintainability and testability.
 
 ## Features
 
-- **User Authentication:** Secure login and registration screens.
-- **Home Page:** Currently serves as a verification page for successful login. Will be updated with chat features in future releases.
-- **Modern UI:** Clean and intuitive user interface for authentication flows.
+- Authentication
+  - Email/password registration and login
+  - Form validation and error messaging
+  - Persistent session
+- Chat
+  - Chat list and message threads
+  - Real-time updates powered by Dart Streams
+  - Send, receive, and load message history
+- UI/UX
+  - Modern, responsive, and accessible design
+  - Smooth navigation between auth and chat flows
 
 ## Screenshots
 
->### splash screen
-![alt text](images/splash_screen.png)
->### Login Page
-![alt text](images/login_page.png)
->### Signup Page
-![alt text](images/signup_page.png)
->### Validation Errors
-![alt text](images/validation_errors.png)
+- Splash Screen  
+  ![Splash screen](images/splash_screen.png)
+- Login  
+  ![Login page](images/login_page.png)
+- Signup  
+  ![Signup page](images/signup_page.png)
+- Validation States  
+  ![Validation errors](images/validation_errors.png)
 
-## Usage
+## Getting Started
 
-1. **Clone the repository:**
+1. Clone the repository
    ```sh
    git clone https://github.com/ayanasamuel8/2025-A2SV-G6-mobile-assessment.git
-   cd chat_app
+   cd 2025-A2SV-G6-mobile-assessment/chat_app
    ```
-
-2. **Install dependencies:**
+2. Install dependencies
    ```sh
    flutter pub get
    ```
-
-3. **Run the app:**
+3. Run the app
    ```sh
    flutter run
    ```
 
-4. **Authentication Flow:**
-   - Launch the app.
-   - Register a new account or log in with existing credentials.
-   - Upon successful authentication, you are redirected to the Home Page, which currently verifies login status.
-   - The Home Page will be enhanced with chat features in upcoming updates.
+## Tech Stack
 
-## Technical Overview
+- Flutter (Dart)
+- State management: Provider
+- Navigation: Flutter Navigator
+- Real-time: Streams backed by your real-time backend (e.g., WebSocket/Firebase)
 
-### Authentication
+## Architecture
 
-- **State Management:** [Provider](https://pub.dev/packages/provider) is used for managing authentication state.
-- **Validation:** Form validation is implemented for email and password fields.
-- **Navigation:** Uses Flutter's Navigator for routing between login, registration, and home screens.
+Clean architecture with clear separation of concerns:
 
-### UI
+- Domain Layer (lib/features/chat/domain)
+  - Entities: ChatEntity, MessageEntity
+  - Repositories: ChatRepository (abstracts chat operations)
+  - Use Cases:
+    - GetChatsUseCase
+    - GetChatByIdUseCase
+    - GetMessagesUseCase
+    - InitiateChatUseCase
+    - DeleteChatUseCase
+- Data Layer (lib/features/chat/data)
+  - datasources/ (remote/local)
+  - models/ (DTOs)
+  - repositories/ (implement ChatRepository)
+- Presentation Layer (lib/features/chat/presentation)
+  - Screens, widgets, and state holders for chat UI
 
-- **Responsive Design:** Adapts to different screen sizes.
-- **Material Design:** Follows Flutter’s Material guidelines for consistency and accessibility.
+## Real-Time Messaging
 
-### Home Page
+- Streams for live updates (new messages, updates)
+- Example integration points:
+  - watchMessages(chatId, token) -> Stream<List<MessageEntity>>
+  - sendMessage(chatId, content, type, token) -> Either<Failure, MessageEntity>
+- Resilience
+  - Auto-reconnect
+  - Local queue for unsent messages
+  - Idempotent sends using client-generated IDs
 
-- **Current Purpose:** Acts as a placeholder to confirm successful authentication.
-- **Future Plans:** Will display chat rooms, recent messages, and allow navigation to individual chats.
+## Testing
 
-### Chat Feature Structure
+- Domain use cases: unit tests for get_chats_usecase, get_chat_by_id_usecase, get_messages_usecase, initiate_chat_usecase, delete_chat_usecase
+- Repository contract tests: test/features/chat/domain/repositories/chat_repository_test.dart
+- Stream tests for real-time flows with mock/fake sources
+- Run tests
+  ```sh
+  flutter test
+  ```
 
-The chat feature is organized using clean architecture principles, with clear separation between domain logic, data handling, and (future) presentation:
+## Development
 
-#### Domain Layer (`lib/features/chat/domain`)
-- **Entities**
-  - `ChatEntity`: Represents a chat between two users.
-  - `MessageEntity`: Represents a message in a chat, including sender, content, and type.
-- **Repositories**
-  - `ChatRepository`: Abstracts chat operations such as fetching chats, messages, initiating and deleting chats.
-- **Use Cases**
-  - `GetChatsUseCase`: Fetches all chats for a user.
-  - `GetChatByIdUsecase`: Fetches a specific chat by ID.
-  - `GetMessagesUsecase`: Fetches messages for a chat.
-  - `InitiateChatUseCase`: Starts a new chat with another user.
-  - `DeleteChatUseCase`: Deletes a chat.
-
-#### Data Layer (`lib/features/chat/data`)
-- **(Placeholders for future implementation)**
-  - `datasources/`, `models/`, `repositories/`: These folders are set up for data sources, data models, and repository implementations.
-
-#### Presentation Layer (`lib/features/chat/presentation`)
-- *(Currently empty, to be implemented as UI is developed.)*
-
----
-
-### Chat Feature Testing
-
-Unit tests are provided for all domain use cases and the repository interface, ensuring robust business logic:
-
-#### Use Case Tests (`test/features/chat/domain/usecases`)
-- Each use case (`get_chats_usecase`, `get_chat_by_id_usecase`, `get_messages_usecase`, `initiate_chat_usecase`, `delete_chat_usecase`) has a dedicated test file.
-- Tests use mock repositories to verify correct behavior and error handling.
-
-#### Repository Tests (`test/features/chat/domain/repositories`)
-- chat_repository_test.dart: Tests the contract and expected behaviors of the `ChatRepository` interface.
-
----
-
-### Example: How the Domain Layer Works
-
-- **Entities** define the core data structures (`ChatEntity`, `MessageEntity`).
-- **Repository** abstracts all chat-related operations, making the domain logic independent of data sources.
-- **Use Cases** encapsulate specific actions (fetching chats, sending messages, etc.), making the business logic reusable and testable.
-
-## Roadmap
-
-- [x] Authentication (Login/Registration)
-- [ ] Chat functionality (inprogress)
-- [ ] User profiles
-- [ ] Real-time messaging
+- Analyze and format
+  ```sh
+  flutter analyze
+  ```
 
 ## Contributing
 
-Contributions are welcome! Please open issues or submit pull requests for improvements.
+Issues and pull requests are welcome.
 
 ## License
 
-This project is licensed under the MIT License.
-
+MIT License
